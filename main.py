@@ -6,25 +6,31 @@ from sqlalchemy import Integer, String, Float
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField
 from wtforms.validators import DataRequired
-import requests
 import os
+import requests
 
 
 
 
-MOVIE_DB_API_KEY = "USE_YOUR_OWN_CODE"
+MOVIE_DB_API_KEY = "4b9e37d95da43e9cd0a2341bedd11c64"
 MOVIE_DB_SEARCH_URL = "https://api.themoviedb.org/3/search/movie"
 MOVIE_DB_INFO_URL = "https://api.themoviedb.org/3/movie"
 MOVIE_DB_IMAGE_URL = "https://image.tmdb.org/t/p/w500"
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('FLASK_KEY')
+app.config['SECRET_KEY'] = '8BYkEfBA6O6donzWlSihBXox7C0sKR6b'
 Bootstrap5(app)
 
 # CREATE DB
 class Base(DeclarativeBase):
     pass
-app.config['SQLALCHEMY_DATABASE_URI'] = 'os.environ.get("DB_URI", "sqlite:///movies.db")'
+database_url = os.environ.get("DATABASE_URL", "").strip()
+if database_url and database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+if not database_url:
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    database_url = "sqlite:///" + os.path.join(basedir, "movies.db").replace("\\", "/")
+app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 db = SQLAlchemy(model_class=Base)
 db.init_app(app)
 
@@ -74,8 +80,9 @@ def add_movie():
         movie_title = form.title.data
         response = requests.get(MOVIE_DB_SEARCH_URL, params={
                                 "api_key": MOVIE_DB_API_KEY, "query": movie_title})
-        data = response.json()["results"]
-        return render_template("select.html", options=data)
+        data = response.json()
+        results = data.get("results", [])
+        return render_template("select.html", options=results)
     return render_template("add.html", form=form)
 
 
